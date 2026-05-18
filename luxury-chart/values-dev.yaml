@@ -1,0 +1,9 @@
+replicaCount: 1
+
+image:
+  repository: nehalwandhare/luxury-app
+  tag: "v2"
+
+service:
+  type: LoadBalancer
+  port: 80

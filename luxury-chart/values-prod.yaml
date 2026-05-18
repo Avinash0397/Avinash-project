@@ -1,0 +1,13 @@
+replicaCount: 3
+
+image:
+  repository: nehalwandhare/luxury-app
+  tag: "v2"
+  pullPolicy: Always
+
+service:
+  type: NodePort
+  port: 80
+
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
