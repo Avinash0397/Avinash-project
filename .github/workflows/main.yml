@@ -81,17 +81,6 @@ jobs:
       with:
         version: 'latest'
 
-    - name: Update kubeconfig
-      run: |
-        aws eks update-kubeconfig \
-        --name avinash-cluster \
-        --region ap-southeast-1
-        
-    - name: Check Deployment Status
-      run: |
-        kubectl get pods 
-        kubectl get svc  
-
     - name: Install Helm
       uses: azure/setup-helm@v4
 
