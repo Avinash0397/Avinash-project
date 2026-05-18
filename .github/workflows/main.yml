@@ -14,10 +14,13 @@ jobs:
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@v2
-      with:
-        projectBaseDir: .
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.projectKey=avinash974_Avinash-project
+          -Dsonar.organization=avinash974
+          -Dsonar.sources=.
 
     - name: Install Snyk
       run: npm install -g snyk
