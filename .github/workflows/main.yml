@@ -1,0 +1,95 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  devsecops:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@v2
+      with:
+        projectBaseDir: .
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: Install Snyk
+      run: npm install -g snyk
+
+    - name: Install Dependencies
+      run: |
+       cd vote
+       pip install -r requirements.txt
+
+    - name: Snyk Auth
+      run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
+    - name: DockerHub Login
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build Docker Image
+      run: |
+        docker build -t avinash974/luxury-app ./frontend
+
+    - name: Trivy Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+       image-ref: avinash974/luxury-app
+       format: table
+       exit-code: 0
+       severity: HIGH,CRITICAL
+
+    - name: Push Docker Image
+      run: |
+        docker push avinash974/luxury-app
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-south-1
+
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+        --name avinash-cluster \
+        --region ap-south-1
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+
+    - name: Deploy STAGE
+      run: |
+        helm upgrade --install luxury-stage ./luxury-chart \
+        -n stage \
+        -f luxury-chart/values-stage.yaml \
+        --set image.repository=${{ secrets.DOCKER_USERNAME }}/luxury-app \
+        --set image.tag=${{ github.sha }}
+
+    - name: Deploy PROD
+      run: |
+        helm upgrade --install luxury-prod ./luxury-chart \
+        -n prod \
+        -f luxury-chart/values-prod.yaml \
+        --set image.repository=${{ secrets.DOCKER_USERNAME }}/luxury-app \
+        --set image.tag=${{ github.sha }}
+
+    - name: Wait for App to be Live
+      run: sleep 60
+
+    
+    - name: StackHawk DAST Scan
+      uses: stackhawk/hawkscan-action@v2
+      with:
+        apiKey: ${{ secrets.HAWK_API_KEY }}
+        configurationFiles: stackhawk.yml
