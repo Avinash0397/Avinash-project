@@ -36,11 +36,16 @@ jobs:
 
     - name: Install Dependencies
       run: |
-       cd vote
-       pip install -r requirements.txt
+       cd frontend
+       pip install -r package.json
 
     - name: Snyk Auth
       run: snyk auth ${{ secrets.SNYK_TOKEN }}
+      
+    - name: Snyk Test
+      run: |
+       cd frontend
+       snyk test --file=package.json 
 
     - name: DockerHub Login
       uses: docker/login-action@v3
